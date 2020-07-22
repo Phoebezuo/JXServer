@@ -150,7 +150,7 @@ The client may open several concurrent requests for the same ﬁlename on differ
 
 In the diagram below, the blue double headed arrows indicate a successful connection. Originally, the client has opened one connection, requesting the ﬁle target.txt, with session ID 0x67A5CC30. The client then opens a second connection, requesting the same ﬁle. Because the session ID is the same, the server accepts the connection, and is able to return ﬁle data simultaneously over the two connections (note that the requested ﬁle range must also be the same, but this is not shown in the diagram).
 
-![img1](/Users/phoebezuo/Desktop/img1.png)
+![img1](https://github.com/Phoebezuo/JXServer/blob/master/img1.png)
 
 You do not have to multiplex your ﬁle response across multiple connections. If so, for connections on which you will not be returning data, you can send a response with type 0x7 with empty payload. However, your program must be returning the requested response on at least one connection among those the client opens.
 
@@ -160,7 +160,7 @@ It is not valid to receive a request for a different ﬁle, or the same ﬁle wi
 
 In the below example diagram, the red arrow indicates a failed connection where an error response should be sent. The client has an existing connection requesting the ﬁle target.txt, with session ID 0x67A5CC30. It has attempted to open a new connection requesting the different ﬁle otherﬁle.txt, with the same session ID. This is invalid; however the client is able to make a request for otherﬁle.txt, shown using the different session ID 0x1200CFBA. The server is then expected to service these two requests simultaneously.
 
-![img2](/Users/phoebezuo/Desktop/img2.png)
+![img2](https://github.com/Phoebezuo/JXServer/blob/master/img2.png)
 
 You may receive a request for the same ﬁle with a different session ID while that ﬁle is being transferred under a ﬁrst session ID. This is considered a separate client that requires a separate copy of the ﬁle and should receive the appropriate response.
 
@@ -202,7 +202,7 @@ An example of the start of a compression dictionary is shown below. Note that th
 
 This data is explained in order below:
 
-![img3](/Users/phoebezuo/Desktop/img3.png)
+![img3](https://github.com/Phoebezuo/JXServer/blob/master/img3.png)
 
 - The ﬁrst segment corresponds to the byte 0x00
 
@@ -245,7 +245,7 @@ As you may note, input bytes are encoded to variable length bit codes (“variab
 
 Remember to comment or uncomment in common.h file.
 
-![img4](/Users/phoebezuo/Desktop/img4.png)
+![img4](https://github.com/Phoebezuo/JXServer/blob/master/img4.png)
 
 ## Usage 
 
