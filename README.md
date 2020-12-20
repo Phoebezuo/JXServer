@@ -1,85 +1,62 @@
 # JXServer
 
-In this assignment, you will create a networked server (“JXServer”) that sends ﬁles to clients in response to requests. Your server will support multiple connecting clients simultaneously as well as multiple simultaneous connections from the same client for increased transfer speeds.
+A networked server that sends ﬁles to clients in response to requests, which will support multiple connecting clients simultaneously as well as multiple simultaneous connections from the same client for increased transfer speeds.
 
 ## Introduction
 
 Typically, networking functionality is implemented by kernel space code. On Linux and other Unixlike operating systems, the kernel implements the various components required for networking, such as Wiﬁ capabilities and the Internet Protocol. This is made available to userspace programs through special system calls, which interact with an abstraction known as a socket.
 
-Sockets represent a connection to another endpoint on a network, but are analogous to ﬁle handles and are also described by a ﬁle descriptor. “Reading” from or “writing” to a socket corresponds to receiving or sending data over the network. However, as there are specialised operations that need to be performed with sockets, such as accepting or making connections to network destinations, there are special system calls that are generally used.
+Sockets represent a connection to another endpoint on a network, but are analogous to ﬁle handles and are also described by a ﬁle descriptor. "Reading" from or "writing" to a socket corresponds to receiving or sending data over the network. However, as there are specialised operations that need to be performed with sockets, such as accepting or making connections to network destinations, there are special system calls that are generally used.
 
-A full discussion of network stacks and protocols is out of scope for this unit. For this assignment, your server will use standard Transmission Control Protocol (TCP) connections on top of the Internet Protocol, version 4 (IPv4). This is a standard networking protocol combination for ubiquitous services such as HTTP which we use on the “World Wide Web”.
+This server will use standard Transmission Control Protocol (TCP) connections on top of the Internet Protocol, version 4 (IPv4). This is a standard networking protocol combination for ubiquitous services such as HTTP which we use on the "World Wide Web".
 
-The combination of TCP and IP(v4), as implemented and exposed to userspace by the kernel, permits the formation of network connections. We will not be using any other version of IP in this assignment. A client initiates a connection to a server. Both client and server endpoints are deﬁned by an IP address, which in IPv4 is a 32 bit unsigned integer, as well as a TCP port number, which is a 16 bit unsigned integer. Once the server accepts the connection, the endpoints exchange data to setup a reliable connection. Data that userspace programs send into the socket, at either end of the connection, is delivered and made available for receiving by the userspace application at the other endpoint. TCP guarantees that data is delivered reliably and in order over varying network conditions. It also permits either endpoint to send data simultaneously to each other. However, it treats data as a continuous stream rather than discrete messages; that is for example if an endpoint sends 5 bytes then 10 bytes, the other endpoint will be able to read the data as it is received, with no indication that there was originally a break in sending 5 bytes in.
+The combination of TCP and IP(v4), as implemented and exposed to userspace by the kernel, permits the formation of network connections. A client initiates a connection to a server. Both client and server endpoints are deﬁned by an IP address, which in IPv4 is a 32 bit unsigned integer, as well as a TCP port number, which is a 16 bit unsigned integer. Once the server accepts the connection, the endpoints exchange data to setup a reliable connection. Data that userspace programs send into the socket, at either end of the connection, is delivered and made available for receiving by the userspace application at the other endpoint. TCP guarantees that data is delivered reliably and in order over varying network conditions. It also permits either endpoint to send data simultaneously to each other. However, it treats data as a continuous stream rather than discrete messages; that is for example if an endpoint sends 5 bytes then 10 bytes, the other endpoint will be able to read the data as it is received, with no indication that there was originally a break in sending 5 bytes in.
 
-Your server is responsible for creating a “listening” TCP socket. This means that it waits for inbound TCP connections from clients.
+## Usage 
 
-In software development, you will often be required to program against third party APIs and libraries. To practice this skill, for this assignment you will need to refer to the manpages for system calls mentioned to determine how to employ them, though guidance will be provided in this speciﬁcation.
+### Generate Configure 
 
-To create your TCP socket, you need to use socket(2). For the domain argument, please use AF_INET. For the type argument, please use SOCK_STREAM. You can leave the protocol argument as 0.
-
-You then need to bind your TCP socket to an address using bind(2). This assigns an IP address and TCP port to your end of the socket.
-
-You may have seen IPv4 addresses represented in “dotted quad notation”, such as “192.0.2.1”, which is simply 4 8-bit integers extracted in order from the 32-bit address. You may wish to use inet_aton(3) to convert from dotted quad notation to the 32-bit integer representation, and inet_ntoa(3) to convert in the other direction.
-
-Next, you need to specify that your TCP socket will be listening for incoming connections, using listen(2).
-
-Finally, you will wait for inbound connections on your socket using accept(2). The kernel will queue for your program connections to the IP address and TCP port combination that you bind(2) to. When accept(2) returns, it creates a new socket which allows your program to communicate with this particular accepted connection. Your original socket remains listening for further connections that can be accepted with accept(2).
-
-Once you have a connected socket, you can send data to the other endpoint using send(2), and you can receive any data the other endpoint has sent using recv(2).
-
-To close a socket, preventing further communication on it, you can use shutdown(2) and/or close(2).
-
-This is a very basic sequence of system calls. To support multiple simultaneous connections, you may wish to use concurrent programming, such as threads or processes. You may also wish to use mechanisms by which you can be informed when a connection is waiting or data can be read. These include select(2) and poll(2).
-
-Please note the distinction between host and network byte order. Network protocols, including the one in this assignment, generally send data such as integers in big-endian (“network byte order”), whereas your host system generally stores them as little-endian. To help you convert between byte orderings, please review the manpages byteorder(3), bswap(3) and/or endian(3). For the avoidance of doubt, where applicable, data in this assignment is to be sent as big-endian on the network.
-
-## Task
-
-You will write your server in C, compiling to a single binary executable. It will accept exactly 1 command line argument as follows:
-
-./server <configuration file> The argument <configuration file> will be a path to a binary conﬁguration ﬁle. The data of this ﬁle will be arranged in the following layout from the start:
-
-- 4 bytes - the IPv4 address your server will listen on, in network byte order
-
-- 2 bytes - representing the TCP port number your server will listen on, in network byte order
-
-- All remaining bytes until the end of the ﬁle - ASCII representing the relative or absolute path to the directory (“the target directory”), from which your server will offer ﬁles to clients. This will not be NULL terminated.
-
-The conﬁguration ﬁle is binary, not plaintext, and does not have any delimiters or terminators (including newlines).
-
-The full contents of an example conﬁguration ﬁle, as a hexdump, are shown below:
-
-``` 
-c0 00 02 01 16 2e 2f 74 65 73 74 69 6e 67
+```
+Usage: ./generate-config <dotted quad ipv4 address xxx.xxx.xxx.xxx> <port number> <target directory>
+For example: ./generate-config 127.0.0.1 8888 /this/is/my/directory
 ```
 
-The ﬁle is explained in order below:
+### Build Server 
 
-- c0 00 02 01 - 4 bytes which represent the IPv4 address “192.0.2.1” in network byte order
+``` 
+make all
+```
 
-- 16 2e - 2 bytes which represent the port number 5678 in network byte order
+### Build Client
 
-- 2f 74 65 73 74 69 6e 67 - 8 bytes of ASCII representing the string “/testing” which is the path of the target directory
+``` 
+make client
+```
 
-Your server will listen for and accept connections from clients. Upon a successful connection, clients will send a number of possible requests, described in the below format. Please note that all integer ﬁelds are sent in network byte order. Your server should not send any data except in response to a client request.
+### Clean the Program
 
-When a client is ﬁnished making requests on a given connection, they will shutdown(2) the connection. When you detect this (refer to recv(2)), you should close that socket and clean up any associated data in your program.
+```
+make clean
+```
 
-The one exception to this is the client may send a “Shutdown command” (see section below).
+## Functionality
+
+This server will listen for and accept connections from clients. Upon a successful connection, clients will send a number of possible requests, described in the below format. Please note that all integer ﬁelds are sent in network byte order. This server should not send any data except in response to a client request.
+
+When a client is ﬁnished making requests on a given connection, they will shutdown the connection. When you detect this, the server should close that socket and clean up any associated data in your program.
 
 All client requests and server responses consist of one or more structured series of bytes, called messages. Each message will contain the following ﬁelds in the below format:
 
 - 1 byte - Message header; this describes details about the message as follows.
-  - First 4 bits - “Type digit”: A single hexadecimal digit that deﬁnes the type of request or response. It is unique for different types of messages.
-  - 5th bit - “Compression bit”: If this bit is 1, it indicates that the payload is compressed (see “Compression” section below). Otherwise, the payload is to be read as is.
-  - 6th bit - “Requires compression bit”: If this bit is 1 in a request message, it indicates that all server responses (except for error responses) must be compressed (see “Compression” section below). If it is 0, server response compression is optional. It has no meaning in a response message.
+  - First 4 bits - "Type digit": A single hexadecimal digit that deﬁnes the type of request or response. It is unique for different types of messages.
+  - 5th bit - "Compression bit": If this bit is 1, it indicates that the payload is compressed. Otherwise, the payload is to be read as is.
+  - 6th bit - "Requires compression bit": If this bit is 1 in a request message, it indicates that all server responses (except for error responses) must be compressed. If it is 0, server response compression is optional. It has no meaning in a response message.
   - 7th and 8th bits - padding bits, which should all be 0.
 
 - 8 bytes - Payload length; unsigned integer representing the length of the variable payload in bytes (in network byte order).
 - Variable byte payload - a sequence of bytes, with length equal to the length ﬁeld described previously. It will have different meanings depending on the type of request/response message.
 
-The full contents of an example message, as a hexdump, are shown below. Note that it is a valid example of a message in this network protocol, but does not correspond to any meaningful request or response you actually have to implement in this assignment.
+The full contents of an example message, as a hexdump, are shown below. Note that it is a valid example of a message in this network protocol, but does not correspond to any meaningful request or response.
 
 ``` 
 d8 00 00 00 00 00 00 00 07 ab ab ab ab ab ab ab
@@ -98,33 +75,33 @@ This message is explained in order below:
 
 On any single connection, clients will only send one request at a time, before waiting for the appropriate response. That is, after sending a request, the client will wait for the server to send a complete response before sending the next request. For some requests, the server will need to send multiple response messages. An example is ﬁle retrieval, where the server may need to send a ﬁle to the client split over many response messages. In this case, the client will wait until all appropriate response messages are received before sending the next request, if any.
 
-## Error functionality
+### Error functionality
 
-If you receive a client request with invalid (unknown) type ﬁeld, your server is to send back a response with type digit 0xf, with no payload (payload length ﬁeld 0), and then close the connection. You should also send this error message if there are any other errors that arise in requests with valid request type ﬁelds. You are to also send back this error response if you receive a client request with a type ﬁeld that must only be used in server response messages. Error messages are never compressed, even if the original request indicated compression is required.
+If server receive a client request with invalid (unknown) type ﬁeld, this server is to send back a response with type digit 0xf, with no payload (payload length ﬁeld 0), and then close the connection. Server should also send this error message if there are any other errors that arise in requests with valid request type ﬁelds. Server are to also send back this error response if server receive a client request with a type ﬁeld that must only be used in server response messages. Error messages are never compressed, even if the original request indicated compression is required.
 
-## Echo functionality
+### Echo functionality
 
-Clients may request an “echo”. The request type digit will be 0x0. There will be an arbitrary sequence of bytes in the payload of the request.
+Clients may request an "echo". The request type digit will be 0x0. There will be an arbitrary sequence of bytes in the payload of the request.
 
-In response to this request, your server is expected to send back a response with type 0x1. The payload of your response should contain the same payload you received in the request. Note that if the original request requires compression, then you need to compress the payload before returning it in the response. However, after decompression, the payload should be identical to the one you received.
+In response to this request, your server is expected to send back a response with type 0x1. The payload of your response should contain the same payload server received in the request. Note that if the original request requires compression, then you need to compress the payload before returning it in the response. However, after decompression, the payload should be identical to the one you received.
 
-## Directory listing
+### Directory listing
 
-The request type will be 0x2. There will be no payload and the payload length ﬁeld will be 0. The client is requesting a list of all ﬁles in the server’s target directory.
+The request type will be 0x2. There will be no payload and the payload length ﬁeld will be 0. The client is requesting a list of all ﬁles in the server's target directory.
 
-In response to this request, your server is expected to send back a response with type 0x3. The payload of your response should contain the ﬁlenames of every regular ﬁle in the target directory provided in the command line arguments to your server. (You do not have to return subdirectories, links, or any other type of entry other than regular ﬁles). The ﬁlenames can be returned in an arbitrary order.
+In response to this request, server is expected to send back a response with type 0x3. The payload of your response should contain the ﬁlenames of every regular ﬁle in the target directory provided in the command line arguments to server. The ﬁlenames can be returned in an arbitrary order.
 
-These ﬁlenames are to be sent end to end in the payload, separated by NULL (0x00) bytes. Include a NULL (0x00) byte at the end of the payload. You will need to set the payload length appropriately. If the directory is empty, send a single NULL (0x00) byte as a payload.
+These ﬁlenames are to be sent end to end in the payload, separated by NULL (0x00) bytes. Include a NULL (0x00) byte at the end of the payload. Server will need to set the payload length appropriately. If the directory is empty, send a single NULL (0x00) byte as a payload.
 
-## File size query
+### File size query
 
 The request type will be 0x4. The request payload will be a NULL terminated string that represents a target ﬁlename, for which the client is requesting the size.
 
-In response to this request, your server is expected to send back a response with type 0x5. The payload of your response should contain the length of the ﬁle with the target ﬁlename in your target directory, in bytes, represented as a 8-byte unsigned integer in network byte order. If the requested ﬁlename does not exist, return an error response message (see “Error functionality”).
+In response to this request, your server is expected to send back a response with type 0x5. The payload of your response should contain the length of the ﬁle with the target ﬁlename in your target directory, in bytes, represented as a 8-byte unsigned integer in network byte order. If the requested ﬁlename does not exist, return an error response message.
 
-## Retrieve ﬁle
+### Retrieve ﬁle
 
-The request type will be 0x6. This is a request for part or whole of a ﬁle in your server’s target directory. The payload will consist of the following structure:
+The request type will be 0x6. This is a request for part or whole of a ﬁle in your server's target directory. The payload will consist of the following structure:
 
 - 4 bytes - an arbitrary sequence of bytes that represents a session ID for this request. 
 
@@ -150,27 +127,27 @@ The client may open several concurrent requests for the same ﬁlename on differ
 
 In the diagram below, the blue double headed arrows indicate a successful connection. Originally, the client has opened one connection, requesting the ﬁle target.txt, with session ID 0x67A5CC30. The client then opens a second connection, requesting the same ﬁle. Because the session ID is the same, the server accepts the connection, and is able to return ﬁle data simultaneously over the two connections (note that the requested ﬁle range must also be the same, but this is not shown in the diagram).
 
-![img1](https://github.com/Phoebezuo/JXServer/blob/master/img1.png)
+<img src='https://i.loli.net/2020/12/20/F2rnOmE6cBgs9a1.png' alt='F2rnOmE6cBgs9a1'/>
 
 You do not have to multiplex your ﬁle response across multiple connections. If so, for connections on which you will not be returning data, you can send a response with type 0x7 with empty payload. However, your program must be returning the requested response on at least one connection among those the client opens.
 
 If you would like to achieve higher performance, you will need to implement multiplexing of your ﬁle response across multiple connections.
 
-It is not valid to receive a request for a different ﬁle, or the same ﬁle with a different byte range, with the same session ID as a currently ongoing transfer. If this occurs, you should send an error response message (see “Error functionality”). However, once the entirety of a ﬁle is transferred, the session ID may be reused for different ﬁles or the same ﬁle with a different byte range, in subsequent requests.
+It is not valid to receive a request for a different ﬁle, or the same ﬁle with a different byte range, with the same session ID as a currently ongoing transfer. If this occurs, you should send an error response message However, once the entirety of a ﬁle is transferred, the session ID may be reused for different ﬁles or the same ﬁle with a different byte range, in subsequent requests.
 
 In the below example diagram, the red arrow indicates a failed connection where an error response should be sent. The client has an existing connection requesting the ﬁle target.txt, with session ID 0x67A5CC30. It has attempted to open a new connection requesting the different ﬁle otherﬁle.txt, with the same session ID. This is invalid; however the client is able to make a request for otherﬁle.txt, shown using the different session ID 0x1200CFBA. The server is then expected to service these two requests simultaneously.
 
-![img2](https://github.com/Phoebezuo/JXServer/blob/master/img2.png)
+<img src='https://i.loli.net/2020/12/20/nw5tqkOQ28IJrvV.png' alt='nw5tqkOQ28IJrvV'/>
 
 You may receive a request for the same ﬁle with a different session ID while that ﬁle is being transferred under a ﬁrst session ID. This is considered a separate client that requires a separate copy of the ﬁle and should receive the appropriate response.
 
-If you receive any other invalid request, such as the ﬁlename not existing, or the requested byte range being invalid for the size of the target ﬁle, you must send an error response message (see “Error functionality”).
+If you receive any other invalid request, such as the ﬁlename not existing, or the requested byte range being invalid for the size of the target ﬁle, you must send an error response message.
 
-## Shutdown command
+### Shutdown command
 
-The request type digit will be 0x8 and the payload will be 0 length. Your server does not send any response. Instead, your server will shutdown(2) and close(2) all current connections, and exit, cleaning up/freeing all threads/processes/memory, as required. You are guaranteed there will be no further new connections or requests after this command. You are guaranteed a Shutdown command will only be sent after your server completes processing all other requests. After all processing has been completed and resources freed, your server should terminate with exit code 0.
+The request type digit will be 0x8 and the payload will be 0 length. Your server does not send any response. Instead, your server will shutdown and close all current connections, and exit, cleaning up/freeing all threads/processes/memory, as required. You are guaranteed there will be no further new connections or requests after this command. You are guaranteed a Shutdown command will only be sent after your server completes processing all other requests. After all processing has been completed and resources freed, your server should terminate with exit code 0.
 
-## Lossless compression
+### Lossless compression
 
 For any message where the compression bit is set in the message header, the variable length payload is losslessly compressed, which means it is encoded in a way that completely retains the original payload information, but aims to reduce the size by applying a compression algorithm to the data. The payload will have the following structure in order (note that the sections are not necessarily aligned to bytes):
 
@@ -182,9 +159,9 @@ For any message where the compression bit is set in the message header, the vari
 
 Note that the payload length ﬁeld of the compressed message will contain the length of the compressed payload in bytes. Note that the padding in the compressed payload ensures it is aligned to whole bytes in size.
 
-Your server may also receive request messages (which may also be compressed) where the “Requires compression” bit is set in the message header. This means that any message(s) that your server sends in response to such messages must be compressed. Your server should never set this bit in a response message; it is only valid in request messages. If this bit is not set for a request, then it is up to you whether to compress response(s) to that request. Compression can reduce the amount of data needing to be sent over the network, but requires a processing time tradeoff to compute the compressed payload.
+Your server may also receive request messages (which may also be compressed) where the "Requires compression" bit is set in the message header. This means that any message(s) that your server sends in response to such messages must be compressed. Your server should never set this bit in a response message; it is only valid in request messages. If this bit is not set for a request, then it is up to you whether to compress response(s) to that request. Compression can reduce the amount of data needing to be sent over the network, but requires a processing time tradeoff to compute the compressed payload.
 
-In this assignment, you will apply compression by replacing bytes of uncompressed data with variable length bit sequences (“bit codes”). This works by aiming to encode more frequently used bytes to shorter bit codes, and less frequently used bytes to longer codes. Therefore, it is possible to have data which does not compress at all, or in fact “compresses” to a larger size. The compression dictionary deﬁnes the mapping of bytes to bit codes and consists of 256 segments of variable length. Each segment corresponds in order to input byte values from 0x00 to 0xFF. Each segment is not necessarily aligned to a byte boundary. However, at the end of the 256 segments, there is padding with 0 bits to the next byte boundary. This means the entire compression dictionary is aligned to a byte boundary overall. The overall structure follows:
+Server will apply compression by replacing bytes of uncompressed data with variable length bit sequences ("bit codes"). This works by aiming to encode more frequently used bytes to shorter bit codes, and less frequently used bytes to longer codes. Therefore, it is possible to have data which does not compress at all, or in fact "compresses" to a larger size. The compression dictionary deﬁnes the mapping of bytes to bit codes and consists of 256 segments of variable length. Each segment corresponds in order to input byte values from 0x00 to 0xFF. Each segment is not necessarily aligned to a byte boundary. However, at the end of the 256 segments, there is padding with 0 bits to the next byte boundary. This means the entire compression dictionary is aligned to a byte boundary overall. The overall structure follows:
 
 - 256 of the following segments, with no padding in between (including no padding to byte boundaries):
   - 1 byte - unsigned integer representing the length of this code in bits; this is equal to the length of the next ﬁeld in bits. It is not necessarily aligned to a byte boundary.
@@ -202,7 +179,7 @@ An example of the start of a compression dictionary is shown below. Note that th
 
 This data is explained in order below:
 
-![img3](https://github.com/Phoebezuo/JXServer/blob/master/img3.png)
+<img src='https://i.loli.net/2020/12/20/7KiLXOeSTcsb1o9.png' alt='7KiLXOeSTcsb1o9'/>
 
 - The ﬁrst segment corresponds to the byte 0x00
 
@@ -237,40 +214,12 @@ The compressed payload is output as is. However, at the end of the compressed pa
 
 To decode compressed data, as you read in bits from the compressed payload, simply reverse the process by using the compression dictionary to ﬁnd the original byte values. When you decompress a payload, interpret that payload as per the other functionality of your server, depending on the message type digit contained in the message header.
 
-For the “Requires compression” bit, you do not ever compress already compressed data. For example, if you receive an echo request with compressed payload, and “Requires compression” set, you do not compress the payload again in your response.
+For the "Requires compression" bit, you do not ever compress already compressed data. For example, if you receive an echo request with compressed payload, and "Requires compression" set, you do not compress the payload again in your response.
 
-As you may note, input bytes are encoded to variable length bit codes (“variable length coding”). It is guaranteed that your compression dictionary gives you bit codes that are uniquely decodable. This means there is only one way to decode a compressed payload, even though you are not explicitly informed where the variable length bit codes start and end.
+As you may note, input bytes are encoded to variable length bit codes ("variable length coding"). It is guaranteed that your compression dictionary gives you bit codes that are uniquely decodable. This means there is only one way to decode a compressed payload, even though you are not explicitly informed where the variable length bit codes start and end.
 
-### Notes
+## Notes
 
-Remember to comment or uncomment in common.h file.
+Remember to comment or uncomment in `common.h` file.
 
-![img4](https://github.com/Phoebezuo/JXServer/blob/master/img4.png)
-
-## Usage 
-
-### Generate Configure 
-
-```
-Usage: ./generate-config <dotted quad ipv4 address xxx.xxx.xxx.xxx> <port number> <target directory>
-For example: ./generate-config 127.0.0.1 8888 /this/is/my/directory
-```
-
-### Build Server 
-
-``` 
-make all
-```
-
-### Build Client
-
-``` 
-make client
-```
-
-### Clean the Program
-
-```
-make clean
-```
-
+<img src='https://i.loli.net/2020/12/20/ThsQWcE214ynYbN.png' alt='ThsQWcE214ynYbN'/>
